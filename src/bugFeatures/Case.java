@@ -64,8 +64,10 @@ public class Case {
 	//Affiche les données de l'objets
 	public void show() {
 		if (caseNumber == "CAS-150708-Z6Z0") {
-				int toto=1;
-				toto = 2;
+				int toto = 0;
+				int titi =0;
+				toto = titi;
+				titi = toto;
 		}
 		//System.out.println("\n");
 		System.out.println("caseNumber : "+caseNumber);

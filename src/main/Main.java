@@ -164,6 +164,7 @@ public class Main {
 							
 							ClearQuest CQRequestGetInfo = new ClearQuest();
 							CQRequestGetInfo.dbConnect();
+							//GTOP19050051
 							CQRequestGetInfo.readCQ(4,cardNumber);
 							ResultSet rsCQGetInfo = CQRequestGetInfo.getRS();
 							rsCQGetInfo.next();
@@ -464,7 +465,7 @@ public class Main {
 		//export Excel
 		WriteExcel dashBoardXls = null;
 		try {
-			dashBoardXls = new WriteExcel("C:\\Users\\guerrier\\Desktop\\Dashboard Java\\Workspace\\DashboardBatch\\dashboard.xls");
+			dashBoardXls = new WriteExcel("C:\\Users\\guerrier\\OneDrive - Symphony EYC\\Desktop\\Dashboard Java\\dashboard.xls");
 		} catch (WriteException e2) {
 			// TODO Auto-generated catch block
 			e2.printStackTrace();

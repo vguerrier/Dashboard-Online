@@ -95,7 +95,7 @@ public void dbConnectRDTools() {
 	
 		CQbase = "cqcentral";
 		
-		if (gcent.contains("cqgtop"))
+		if (gcent.contains("GTOP"))
 		    CQbase = "cqgtop";
 
 		if (gcent.contains("GADMI"))

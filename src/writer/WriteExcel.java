@@ -186,13 +186,13 @@ public void setOutputFile(String inputFile) {
         
     }
 
-    private void addCaption(WritableSheet sheet, int column, int row, String s)
+ /*   private void addCaption(WritableSheet sheet, int column, int row, String s)
             throws RowsExceededException, WriteException {
         Label label;
         label = new Label(column, row, s, timesBoldUnderline);
         sheet.addCell(label);
     }
-
+*/
     private void addNumber(WritableSheet sheet, int column, int row,
             Integer integer) throws WriteException, RowsExceededException {
         Number number;
