@@ -5,6 +5,7 @@ import java.sql.SQLException;
 
 import writer.*;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -15,6 +16,7 @@ import bugFeatures.Bug;
 import bugFeatures.Card;
 import database.CRM;
 import database.ClearQuest;
+import database.DashMaint;
 
 import java.util.Set;
 
@@ -29,18 +31,98 @@ public class Main {
 	public static HashMap<String, Bug> bugList = new HashMap<>();
 	public static ArrayList<Card> cardList = new ArrayList<Card>();
 	public static HashMap<String, Card> cardListHM = new HashMap<>();
+	public static HashMap<String, Card> cardInternListHM = new HashMap<>();
 	public static HashMap<String, Analyst> AnalystList = new HashMap<>();
-	public static Date dateDebutCRM;
 	public static int nb1 =0;
 	public static int nb2 =0;
+	static int nbInsertedIntern = 0;
 
+	public static void main(String[] args) {
+
+		
+		System.out.println("Batch started");
+		Date dateDebut = new Date (System.currentTimeMillis ()); //Relever l'heure avant le debut du progamme (en milliseconde) 
+		
+		
+		Calendar cal = Calendar.getInstance();
+		System.out.println(cal.get(Calendar.HOUR_OF_DAY)+"h "+cal.get(Calendar.MINUTE)+"m et "+cal.get(Calendar.SECOND)+"s ");
+		Date dStart = new Date (System.currentTimeMillis());
+
+		//constitutions de la liste des analystes maintenance
+		Analysts();
+		Date dAnalyst = new Date (System.currentTimeMillis());
+		System.out.println("Analyst treatment time : " + (dAnalyst.getTime()-dStart.getTime())/1000 + "s "+ (dAnalyst.getTime()-dStart.getTime())%1000 + "ms");
+		//connection et exécution de la requête ClearQuest
+		//on recherche la liste des fiches en intérrogant CQ GCENT Open
+		GCOpens();
+		Date dOpens = new Date (System.currentTimeMillis());
+		System.out.println("CQ Open treatment time : " + (dOpens.getTime()-dAnalyst.getTime())/1000 + "s "+ (dOpens.getTime()-dAnalyst.getTime())%1000 + "ms ");
+		//connection et exécution de la requête ClearQuest
+		//on recherche la liste des fiches en intérrogant CQ GCENT Closed
+		GCClosed();
+		Date dClosed = new Date (System.currentTimeMillis());
+		System.out.println("CQ Closed treatment time : " + (dClosed.getTime()-dOpens.getTime())/1000 + "s "+ (dClosed.getTime()-dOpens.getTime())%1000 + "ms ");
+		//connection et exécution de la requête ClearQuest
+		//on recherche la liste des fiches en intérrogant CQ GCENT Interne
+		GCIntern();
+		Date dIntern = new Date (System.currentTimeMillis());
+		System.out.println("CQ Internal treatment time : " + (dIntern.getTime()-dClosed.getTime())/1000 + "s "+ (dIntern.getTime()-dClosed.getTime())%1000 + "ms ");
+		//parcours des cases
+		//on recherche la liste des cases en intérrogant CRM
+		//parcours et Construction des bugs/Case
+		CRMCases();		
+		Date dCases = new Date (System.currentTimeMillis());
+		System.out.println("CRM Cases treatment time : " + (dCases.getTime()-dIntern.getTime())/1000 + "s "+ (dCases.getTime()-dIntern.getTime())%1000 + "ms ");
+		//On vide la base
+		truncateDO();
+		Date dTruncate = new Date (System.currentTimeMillis());
+		System.out.println("DashMaint Truncate table treatment time : " + (dTruncate.getTime()-dCases.getTime())/1000 + "s "+ (dTruncate.getTime()-dCases.getTime())%1000 + "ms ");
+		//insert into database
+		insertDO();
+		Date dInsert = new Date (System.currentTimeMillis());
+		System.out.println("DashMaint Insert Bugs treatment time : " + (dInsert.getTime()-dTruncate.getTime())/1000 + "s "+ (dInsert.getTime()-dTruncate.getTime())%1000 + "ms ");
+		//insert into database
+		//Date dInsertIntern = new Date (System.currentTimeMillis());
+		//System.out.println("DashMaint Insert Bugs treatment time : " + (dInsertIntern.getTime()-dInsert.getTime())/1000 + "s "+ (dInsertIntern.getTime()-dInsert.getTime())%1000 + "ms ");
+		//ExportXLS();
+		
+
+		// Log, result and time
+		Date dateFin = new Date (System.currentTimeMillis()); //Relever l'heure a la fin du progamme (en milliseconde) 
+		Date duree = new Date (System.currentTimeMillis()); //Pour calculer la différence
+		duree.setTime (dateFin.getTime () - dateDebut.getTime ());  //Calcul de la différence
+		long secondes = duree.getTime () / 1000;
+		long min = secondes / 60;
+		long heures = min / 60;
+		long mili = duree.getTime () % 1000;
+		secondes %= 60;
+		//int bugListNB = bugList.size();
+		//System.out.println ("durée CRM : \n Nb : " + bugListNB+ " \n" + heuresCRM + "h" + minCRM + "mn" + secondesCRM + "s" + miliCRM + "ms\n");
+		System.out.println ("Batch treatment time : "+ heures + "h" + min + "mn" + secondes + "s" + mili + "ms");
+		Calendar cal2 = Calendar.getInstance();
+		System.out.println(cal2.get(Calendar.HOUR_OF_DAY)+"h "+cal2.get(Calendar.MINUTE)+"m et "+cal2.get(Calendar.SECOND)+"s ");
+
+
+		
+	}
 	
 	
+	
+	private static void truncateDO() {
+		System.out.println("Truncate table DashMaint database");
+		DashMaint InsertRQ = new DashMaint();
+		InsertRQ.dbConnectRDTools();
+		InsertRQ.truncateTables();
+		
+	}
+
+
+
 	public static int Analysts() {
 		int rowCount = 0;
 		
 		//connection et exécution de la requête pour récupérer la liste des analystes
-		System.out.println("RDTools Analyst Request starts");
+		System.out.println("Analyst RDTools Request starts");
 		ClearQuest RDTRequestA = new ClearQuest();
 		RDTRequestA.dbConnectRDTools();
 		RDTRequestA.readCQ(5,"");
@@ -52,7 +134,7 @@ public class Main {
 			    rsRDTA.beforeFirst();
 			}
 		} catch (SQLException e3) {
-			// TODO Auto-generated catch block
+			System.out.println("Error Main.connectionClose : "+e3.toString());
 			e3.printStackTrace();
 		}
 		
@@ -60,7 +142,7 @@ public class Main {
 		//parcours et Construction des GCENTs
 		//parcours des fiches Opens
 		try {
-			System.out.println("RDTool Analyst Data read starts");
+			System.out.println("Analyst RDTools Data read starts");
 			while (rsRDTA.next()) {
 
 				Analyst oneAnalyst = new Analyst( rsRDTA.getString(1), rsRDTA.getString(2), rsRDTA.getString(3), rsRDTA.getString(4), rsRDTA.getString(5),
@@ -73,7 +155,7 @@ public class Main {
 				}
 				
 			}
-			System.out.println("CQ Open Data read finihed, cards created");
+			System.out.println("Analyst RDTools read finihed");
 			
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -82,7 +164,7 @@ public class Main {
 		RDTRequestA.connectionClose();
 		
 		//Constitution de la liste HashMap des analystes
-		System.out.println("RDTools Request finished : " + rowCount);
+		System.out.println("Analyst RDTools Request finished : " + rowCount + " rows");
 
 		return rowCount;
 	}
@@ -96,8 +178,7 @@ public class Main {
 			int rowCount = 0;
 			
 			//connection et exécution de la requête CRM
-			System.out.println("CRM Request starts");
-			dateDebutCRM = new Date (System.currentTimeMillis ()); //Relever l'heure avant le debut du progamme (en milliseconde)
+			System.out.println("CRM Cases Request starts");
 			CRMRequest = new CRM();
 			CRMRequest.dbConnect();
 			CRMRequest.readCRM();
@@ -110,13 +191,14 @@ public class Main {
 				    rsCRM.beforeFirst();
 				}
 			} catch (SQLException e3) {
-				// TODO Auto-generated catch block
+				System.out.println("Error Main.CRMCases : "+e3.toString());
 				e3.printStackTrace();
 			}
-			System.out.println("CRM Request finished : " + rowCount);
+			System.out.println("CRM Cases Request finished : " + rowCount + " rows");
 			
 			
 			nb1=0;
+			nb2=0;
 			//parcours et Construction des bugs/Case
 			Bug oneBug = null;
 			//variable pour déterminer si le case a déjà été ajouté, si oui on y ajoute la Gcent.
@@ -126,18 +208,21 @@ public class Main {
 			
 			try {
 				System.out.println("CRM Cases Data read starts");
-				Date dateDebutCQInfo = null;
+
 				
 				while (rsCRM.next()) {
 					//On crée le bug (et donc case)
 					oneBug = new Bug(rsCRM);
 					cardNumber = null;
-					if (oneBug.theCase.caseNumber.contentEquals("CAS-142213-Q8N5")) {
-						//System.out.println ("Found !");
+					if (oneBug.theCase.caseNumber.contentEquals("CAS-106410-H3C4")) {
+						System.out.println ("Found !");
 					}
 					//on récupère l'objet Card créée uniquement avec la variable cardNumber (les autres champs sont null)
 					Card oneCard = oneBug.theCase.cardList.get(0);
 					//on récupère le numéro de la fiche
+					if (oneCard.numerofiche != null && oneCard.numerofiche.contentEquals("GCENT11110187")) {
+						//System.out.println("GCENT11110187");
+					}
 					if (oneCard.numerofiche != "" && oneCard.numerofiche != null) 
 						cardNumber = oneCard.numerofiche;
 					//on le recherche dans la liste des GCENT cardListHM
@@ -146,7 +231,11 @@ public class Main {
 					//Si on l'a trouvé, on enrichit la fiche du case.
 					nb1++;
 					if (nb1==210) {
-						nb1 = nb1;
+						System.out.println("");
+					}
+					
+					if (cardNumber != null && cardNumber.contentEquals("GCENT11110187")) {
+						//System.out.println("toto");
 					}
 					if (oneCard2 != null) {
 						oneBug.theCase.cardList.remove(0);
@@ -157,10 +246,11 @@ public class Main {
 					else {
 						//Si on a toujours pas trouvé on fait une requete dans CQ pour avoir les infos
 						//connection et exécution de la requête ClearQuest
-						
-						if (cardNumber != "" && cardNumber != null) {
+//cardNumber = "toto";	
+						boolean go = true;	
+						if (cardNumber != "" && cardNumber != null && go) {
 							nb2++;
-							dateDebutCQInfo = new Date (System.currentTimeMillis ()); //Relever l'heure avant le debut du progamme (en milliseconde)
+							Date dStart = new Date (System.currentTimeMillis());
 							
 							ClearQuest CQRequestGetInfo = new ClearQuest();
 							CQRequestGetInfo.dbConnect();
@@ -168,8 +258,11 @@ public class Main {
 							CQRequestGetInfo.readCQ(4,cardNumber);
 							ResultSet rsCQGetInfo = CQRequestGetInfo.getRS();
 							rsCQGetInfo.next();
+							Date dRead = new Date (System.currentTimeMillis());
+							System.out.println("CQRequestGetInfo  middle treatment time ("+nb2+"): " + (dRead.getTime()-dStart.getTime())/1000 + "s "+ (dRead.getTime()-dStart.getTime())%1000 + "ms ");
 							cardNumber = rsCQGetInfo.getString(1);
 							caseNumber = rsCQGetInfo.getString(5);
+
 							oneCard = new Card(cardNumber, rsCQGetInfo.getInt(2), rsCQGetInfo.getString(3), rsCQGetInfo.getString(4), caseNumber,
 									rsCQGetInfo.getDate(6), rsCQGetInfo.getDate(7), rsCQGetInfo.getString(8), rsCQGetInfo.getString(9), rsCQGetInfo.getString(10),
 									rsCQGetInfo.getString(11), rsCQGetInfo.getString(12), rsCQGetInfo.getString(13), rsCQGetInfo.getString(14),
@@ -177,6 +270,13 @@ public class Main {
 									rsCQGetInfo.getShort(20), rsCQGetInfo.getString(21), rsCQGetInfo.getString(22), rsCQGetInfo.getShort(23),
 									rsCQGetInfo.getString(24));
 							CQRequestGetInfo.connectionClose();
+							
+							oneBug.theCase.cardList.remove(0);
+							oneBug.addCard(oneCard);
+							
+							Date dFin = new Date (System.currentTimeMillis());
+							System.out.println("CQRequestGetInfo treatment time ("+nb2+"): " + (dFin.getTime()-dRead.getTime())/1000 + "s "+ (dFin.getTime()-dRead.getTime())%1000 + "ms ");
+							
 							
 						} 
 					}
@@ -192,7 +292,8 @@ public class Main {
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
-			System.out.println("CRM Cases Data read finished, Bug and cases created");
+			System.out.println("CRM Cases Data read finished, Bug and cases created : " + rowCount + " rows ( Nb requestCQInfos : "+nb2+ ") " + nb1);
+			
 			
 			
 			CRMRequest.connectionClose();
@@ -218,12 +319,12 @@ public class Main {
 			    rsCQGCO.beforeFirst();
 			}
 		} catch (SQLException e3) {
-			// TODO Auto-generated catch block
+			System.out.println("Error Main.GCOpens : "+e3.toString());
 			e3.printStackTrace();
 		}
 		
 		
-		System.out.println("CQ Open Request finished : " + rowCount);
+		System.out.println("CQ Open Request finished : " + rowCount + " rows");
 		
 		//parcours et Construction des GCENTs
 		//parcours des fiches Opens
@@ -250,6 +351,7 @@ public class Main {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+		System.out.println("CQ Open Request finished : " + rowCount + " rows");
 		CQRequestGCO.connectionClose();
 		return rowCount;
 	}
@@ -271,7 +373,7 @@ public class Main {
 			    rsCQGCC.beforeFirst();
 			}
 		} catch (SQLException e3) {
-			// TODO Auto-generated catch block
+			System.out.println("Error Main.GCClosed : "+e3.toString());
 			e3.printStackTrace();
 		}
 		
@@ -301,7 +403,7 @@ public class Main {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		System.out.println("CQ Closed Request finished : " + rowCount);
+		System.out.println("CQ Closed Request finished : " + rowCount  + " rows");
 		CQRequestGCC.connectionClose();
 		return rowCount;
 	}
@@ -325,7 +427,7 @@ public class Main {
 			    rsCQGCI.beforeFirst();
 			}
 		} catch (SQLException e3) {
-			// TODO Auto-generated catch block
+			System.out.println("Error Main.GCIntern : "+e3.toString());
 			e3.printStackTrace();
 		}
 		
@@ -343,8 +445,8 @@ public class Main {
 						rsCQGCI.getShort(20), rsCQGCI.getString(21), rsCQGCI.getString(22), rsCQGCI.getShort(23),
 						rsCQGCI.getString(24));
 
-				if (cardListHM.get(cardNumber) == null) {
-					cardListHM.put(cardNumber, oneCard);
+				if (cardInternListHM.get(cardNumber) == null) {
+					cardInternListHM.put(cardNumber, oneCard);
 
 				}
 			}
@@ -354,7 +456,7 @@ public class Main {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		System.out.println("CQ Internal Request finished : " + rowCount);
+		System.out.println("CQ Internal Request finished : " + rowCount  + " rows");
 		CQRequestGCI.connectionClose();
 		return rowCount;
 	}
@@ -376,199 +478,86 @@ public class Main {
 			    rsCQGCT.beforeFirst();
 			}
 		} catch (SQLException e3) {
-			// TODO Auto-generated catch block
+			System.out.println("Error Main.GCTeam : "+e3.toString());
 			e3.printStackTrace();
 		}
 		CQRequestGCT.connectionClose();
-		System.out.println("CQ Team Request finished : " + rowCount);
+		System.out.println("CQ Team Request finished : " + rowCount  + " rows");
 		return rowCount;
 	}
 	
-	public static void main(String[] args) {
-
-		//WriteExcel xls = new WriteExcel();
-		
-		System.out.println("Batch started");
-		Date dateDebut = new Date (System.currentTimeMillis ()); //Relever l'heure avant le debut du progamme (en milliseconde) 
-		
-		
-		//constitutions de la liste des analystes maintenance
-		Analysts();
+	static int insertDO() {
 		//connection et exécution de la requête ClearQuest
-		//on recherche la liste des fiches en intérrogant CQ GCENT Open
-		GCOpens();
-		//connection et exécution de la requête ClearQuest
-		//on recherche la liste des fiches en intérrogant CQ GCENT Closed
-		GCClosed();
-		//connection et exécution de la requête ClearQuest
-		//on recherche la liste des fiches en intérrogant CQ GCENT Interne
-		GCIntern();
-		//parcours des cases
-		//on recherche la liste des cases en intérrogant CRM
-		//parcours et Construction des bugs/Case
-		CRMCases();		
+		//on recherche la liste des fiches en intérrogant CQ GCENT Team
+		int nbInserted = 0;
 		
-
-		//afficahge de la liste des bugs
-//		Set<Entry<String, Bug>> setHm = bugList.entrySet();
-//	    Iterator<Entry<String, Bug>> it = setHm.iterator();
-//		while (it.hasNext()) {
-//			Entry<String, Bug> e = it.next();
-//			System.out.println(e.getKey() + " : \n");
-//			Bug c = (Bug) e.getValue();
-//			// bugList.indexOf();
-//			c.theCase.show();
-//		}
-//		for (Bug theBug : bugList) {
-//			 theBug.theCase.show();
-//		}
 		
-//		try {
-//			rsCRM.next();
-//			oneBug = new Bug(rsCRM);
-//			bugList.put(oneBug.theCase.caseNumber, oneBug);
-//			
-//			while (rsCRM.next()) {
-//				previousBug = oneBug;
-//				oneBug = new Bug(rsCRM);
-//				bugList.put(oneBug.theCase.caseNumber, oneBug);
-//				//System.out.println(" contain : " + bugList.contains(previousBug));
-//				
-//				if (bugList.contains(previousBug)) {
-//					//le bug précédent est le même (même case number)
-//					//on ajoute la CQCard au Bug
-//					previousBug.addCard(oneBug.theCase.cardList.get(0));
-//					oneBug = previousBug;
-//				}
-//				else bugList.put(oneBug);
-//				
-//			}
-//		} catch (Exception e) {
-//			e.printStackTrace();
-//		}
-//		
-//		//afficahge de la liste des bugs
-//		for (Bug theBug : bugList) {
-//			theBug.theCase.show();
-//		}
+		System.out.println("DashMaint Insert Bugs in DashMaint database");
+		DashMaint InsertRQ = new DashMaint();
+		InsertRQ.dbConnectRDTools();
 		
-		// calcul du temps d'exécution de la requete
-		Date dateFinCRM = new Date (System.currentTimeMillis()); //Relever l'heure a la fin du progamme (en milliseconde) 
-		Date dureeCRM = new Date (System.currentTimeMillis()); //Pour calculer la différence
-		dureeCRM.setTime (dateFinCRM.getTime () - dateDebutCRM.getTime ());  //Calcul de la différence
-		long secondesCRM = dureeCRM.getTime () / 1000;
-		long minCRM = secondesCRM / 60;
-		long heuresCRM = minCRM / 60;
-		long miliCRM = dureeCRM.getTime () % 1000;
-		secondesCRM %= 60;
-
-		//export Excel
-		WriteExcel dashBoardXls = null;
 		try {
-			dashBoardXls = new WriteExcel("C:\\Users\\guerrier\\OneDrive - Symphony EYC\\Desktop\\Dashboard Java\\dashboard.xls");
-		} catch (WriteException e2) {
-			// TODO Auto-generated catch block
-			e2.printStackTrace();
-		} catch (IOException e2) {
-			// TODO Auto-generated catch block
-			e2.printStackTrace();
+			
+			// calcul du temps d'exécution de la requete
+			nbInserted = InsertRQ.insertDM(bugList);
+			nbInsertedIntern = InsertRQ.insertDMIntern(cardInternListHM);
+			
+		} catch (Exception e3) {
+			System.out.println("Error Main.insertDO : "+e3.toString());
+			e3.printStackTrace();
 		}
-	        
+		InsertRQ.connectionClose();
 		
-		//afficahge de la liste des bugs
-		Set<Entry<String, Bug>> setHm = bugList.entrySet();
-	    Iterator<Entry<String, Bug>> it = setHm.iterator();
-	    int line = 1;
-	    try {
-			while (it.hasNext()) {
-				Entry<String, Bug> e = it.next();
-				//System.out.println(e.getKey() + " : \n");
-				Bug c = (Bug) e.getValue();
-				
-				line = dashBoardXls.write(c, line);
-				line ++;
-				
-				// bugList.indexOf();
-//				if (c.theCase.caseNumber.contentEquals("CAS-142213-Q8N5")) {
-//					System.out.println (" ");
-//					c.theCase.show();
-//				}
-	
-			}
-			dashBoardXls.closeExcel();
-	    } catch (WriteException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		} catch (IOException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
-		
-		//afficahge de la liste des bugs
-		 //Parcours de l'objet HashMap
-//	      Set<Entry<String, Card>> setHmCQ = cardListHM.entrySet();
-//	      Iterator<Entry<String, Card>> itCQ = setHmCQ.iterator();
-//	      while(itCQ.hasNext()){
-//	         Entry<String, Card> e = itCQ.next();
-//	         //System.out.println(e.getKey() + " : \n");
-//	         Card c = (Card) e.getValue();
-//	         //bugList.indexOf();
-//	         c.show();
-//	      }
-		
-		/*for (Card theCard : cardList) {
-			theCard.show();
-		}*/
-		
-		Date dateFin = new Date (System.currentTimeMillis()); //Relever l'heure a la fin du progamme (en milliseconde) 
-		Date duree = new Date (System.currentTimeMillis()); //Pour calculer la différence
-		duree.setTime (dateFin.getTime () - dateDebut.getTime ());  //Calcul de la différence
-		long secondes = duree.getTime () / 1000;
-		long min = secondes / 60;
-		long heures = min / 60;
-		long mili = duree.getTime () % 1000;
-		secondes %= 60;
-		int bugListNB = bugList.size();
-		System.out.println ("durée CRM : \n Nb : " + bugListNB+ " \n" + heuresCRM + "h" + minCRM + "mn" + secondesCRM + "s" + miliCRM + "ms\n");
-		System.out.println ("durée Cards : \n Nb : " + cardListHM.size()+ "\\" + nb1 + "\\" + nb2 +" \n" + heures + "h" + min + "mn" + secondes + "s" + mili + "ms\n");
-		
-		//association de la GCENT au Case correspondant.
-		//parcours des case
-//		for (Bug theBug : bugList) {
-//			
-//		}
-		//update Cat case à traiter et construction des objets cases
-		//UpdateCAT
-
-
-		//"sqlsrv:server=seyccrmsqlsip1 ; Database=crm_MSCRM", "", ""
-		//jdbc:sqlserver://seyccrmsqlsip1;databaseName=crm_MSCRM;integratedSecurity=true;
-		
-	    //WsExe.Cells(9, 2) = "16%"
-		//UpdateGREP update des Gcent de reports
-		//WsExe.Cells(9, 2) = "32%"
-			    //Update
-				//'UpdateGOUT
-			    //WsExe.Cells(9, 2) = "48%"
-			    //UpdateGOPEN
-			    //WsExe.Cells(9, 2) = "55%"
-			    //UpdateGCLOSED
-			    //WsExe.Cells(9, 2) = "66%"
-			    //TeamRequest
-			    //WsExe.Cells(9, 2) = "78%"
-			    //WsExe.Activate
-			    //UpdateGINT
-			    //WsExe.Cells(9, 2) = "88%"
-			    //UpdateTTC
-			    //WsExe.Activate
-			    //WsExe.Cells(9, 2) = "90%"
-			    //UpdateCUST
-			    //WsExe.Cells(9, 2) = "93%"
-			    //UpdateTeamSP
-			    //WsExe.Cells(9, 2) = "97%"
-			    //UpdateDomains
-			    //WsExe.Cells(9, 2) = "100%"
+		return nbInserted;
 	}
+	
+	
+	
+	
+	static void ExportXLS() {
+		//export Excel
+				WriteExcel dashBoardXls = null;
+				try {
+					dashBoardXls = new WriteExcel("C:\\Users\\guerrier\\OneDrive - Symphony EYC\\Desktop\\Dashboard Java\\dashboard.xls");
+				} catch (WriteException e2) {
+					System.out.println("Error Main.ExportXLS : "+e2.toString());
+					e2.printStackTrace();
+				} catch (IOException e2) {
+					System.out.println("Error Main.ExportXLS : "+e2.toString());
+					e2.printStackTrace();
+				}
+				
+				//afficahge de la liste des bugs
+				Set<Entry<String, Bug>> setHm = bugList.entrySet();
+			    Iterator<Entry<String, Bug>> it = setHm.iterator();
+			    int line = 1;
+			    try {
+					while (it.hasNext()) {
+						Entry<String, Bug> e = it.next();
+						//System.out.println(e.getKey() + " : \n");
+						Bug c = (Bug) e.getValue();
+						
+						line = dashBoardXls.write(c, line);
+						line ++;
+						
+						// bugList.indexOf();
+//						if (c.theCase.caseNumber.contentEquals("CAS-142213-Q8N5")) {
+//							System.out.println (" ");
+//							c.theCase.show();
+//						}
+			
+					}
+					dashBoardXls.closeExcel();
+			    } catch (WriteException e1) {
+			    	System.out.println("Error Main.ExportXLS : "+e1.toString());
+					e1.printStackTrace();
+				} catch (IOException e1) {
+					System.out.println("Error Main.ExportXLS : "+e1.toString());
+					e1.printStackTrace();
+				}
+	}
+	
+	
 	
 
 }

@@ -92,7 +92,7 @@ public class CRM {
 		try {
 			conn.close();
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
+			System.out.println("Error CRM.connectionClose : "+e.toString());
 			e.printStackTrace();
 		}
 	}

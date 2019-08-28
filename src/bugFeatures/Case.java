@@ -10,7 +10,7 @@ public class Case {
 	public Short scorePriority;
 	public String functionalDomain;      
 	public String status;
-	public String CQcard;
+	//public String CQcard;
 	public String module;
 	public String priority;
 	public Date EDD ;
@@ -38,7 +38,10 @@ public class Case {
        	  
 	//Constructeur
 	public Case (String theCaseNumber, String theCustomerName, Short theScorePriority, String theFunctionalDomain, String theStatus,
-			String theCQcard, String theModule, String thePriority, Date TheEDD ) {
+			String theCQcard, String theModule, String thePriority, Date TheEDD, String theOwner, String theassignedGroup, String theVTP, 
+			String thetitle, String theworkstream, Date thecreationDate, Date thelastModificationDate, String thecustomerCaseNumber, 
+			String theproduction, String theCQassignedTo, String theCQlabel, String theCQstate, String theassignedPerson, 
+			Short therejectedCount, Date theECD, String thetargetPatch, String theIncID, String theversion, String theclientnumber ) {
 		caseNumber = theCaseNumber;
 		customerName = theCustomerName;
 		scorePriority= theScorePriority;
@@ -49,6 +52,25 @@ public class Case {
 		module = theModule;
 		priority = thePriority;
 		EDD = TheEDD;
+		Owner=theOwner;
+		assignedGroup=theassignedGroup;
+		VTP=theVTP;
+		title=thetitle;
+		workstream=theworkstream;
+		creationDate=thecreationDate;
+		lastModificationDate=thelastModificationDate;
+		customerCaseNumber=thecustomerCaseNumber;
+		production=theproduction;
+		CQassignedTo=theCQassignedTo;
+		CQlabel=theCQlabel;
+		CQstate=theCQstate;
+		assignedPerson=theassignedPerson;
+		rejectedCount=therejectedCount;
+		ECD=theECD;
+		targetPatch=thetargetPatch;
+		IncID=theIncID;
+		version=theversion;
+		clientnumber=theclientnumber;
 		
 	}
 	

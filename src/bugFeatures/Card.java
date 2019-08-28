@@ -97,14 +97,14 @@ public class Card {
 		domainFunctional = null;
 		loginName = null;
 		productName = null;
-		retrofitCard = null;
+		retrofitCard = 0;
 		openingDate = null;
 		ECD = null;
 		severity = null;
-		age = null;
+		age = 0;
 		subProduct = null;
 		internalState = null;
-		regression = null;
+		regression = 0;
 		regressionCause = null;
 
 	}

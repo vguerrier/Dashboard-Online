@@ -24,7 +24,7 @@ public class ClearQuest {
 			conn = null;
 			conn = DriverManager.getConnection(db_connect_string,"readcquest","readcquest");
 		} catch (ClassNotFoundException | SQLException e) {
-			// TODO Auto-generated catch block
+			System.out.println("Error ClearQuest.dbConnect : "+e.toString());
 			e.printStackTrace();
 		}
 	}
@@ -37,7 +37,7 @@ public void dbConnectRDTools() {
 			conn = null;
 			conn = DriverManager.getConnection(db_connect_string2,"read_only","read_only");
 		} catch (ClassNotFoundException | SQLException e) {
-			// TODO Auto-generated catch block
+			System.out.println("Error ClearQuest.dbConnectRDTools : "+e.toString());
 			e.printStackTrace();
 		}
 	}
@@ -219,7 +219,7 @@ public void dbConnectRDTools() {
 				" and T1.Subproduct = SP.DBID"+ //
 				" and T1.dbid <> 0"+ //
 				" and T1.PRODUIT_1 = T12.dbid"+ //
-				" and T5.name = 'Fermée'"+ //
+				" and T5.name = 'Ferm\u00e9e'"+ //
 				" and T1.dbid = h.entity_dbid"+ //
 				" and (h.action_name = 'Fermer' and h.ACTION_TIMESTAMP between sysdate - 120 AND sysdate)"+ //
 				" and (T1.typereference = 'Interne' or T1.typereference = 'SalesForce' or T1.typereference = 'GIS' or T1.typereference = 'CRM')"; //
@@ -764,7 +764,7 @@ public void dbConnectRDTools() {
 		try {
 			conn.close();
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
+			System.out.println("Error ClearQuest.connectionClose : "+e.toString());
 			e.printStackTrace();
 		}
 	}
